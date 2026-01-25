@@ -1,0 +1,700 @@
+/**
+ * YOLO Vision AI - Neo-Noir Control Room
+ * A distinctive, production-grade interface
+ * Aesthetic: Dark observatory with electric accents
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&display=swap');
+
+/* ========================================
+   DESIGN TOKENS - Neo-Noir Palette
+   ======================================== */
+:root {
+    /* Deep space backgrounds */
+    --void: #0a0a0f;
+    --obsidian: #12121a;
+    --slate: #1a1a24;
+    --charcoal: #252532;
+
+    /* Electric accent - the signature punch */
+    --electric: #00f5d4;
+    --electric-dim: rgba(0, 245, 212, 0.15);
+    --electric-glow: rgba(0, 245, 212, 0.4);
+
+    /* Secondary accent */
+    --hot-pink: #ff006e;
+
+    /* Text hierarchy */
+    --text-bright: #ffffff;
+    --text-primary: #e4e4ed;
+    --text-muted: #8888a0;
+    --text-dim: #555568;
+
+    /* Borders & surfaces */
+    --border: rgba(255, 255, 255, 0.06);
+    --surface: rgba(255, 255, 255, 0.03);
+
+    /* Typography */
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Spacing rhythm */
+    --space-xs: 8px;
+    --space-sm: 16px;
+    --space-md: 24px;
+    --space-lg: 40px;
+    --space-xl: 64px;
+
+    /* Motion - purposeful, not playful */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration: 400ms;
+}
+
+/* ========================================
+   BASE - The Canvas
+   ======================================== */
+.stApp {
+    background: var(--void) !important;
+    background-image:
+        radial-gradient(ellipse at 50% 0%, rgba(0, 245, 212, 0.03) 0%, transparent 50%),
+        linear-gradient(180deg, var(--void) 0%, var(--obsidian) 100%);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+}
+
+/* Subtle grid overlay for depth */
+.stApp::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+    font-family: var(--font-display) !important;
+    font-weight: 700 !important;
+    color: var(--text-bright) !important;
+    letter-spacing: -0.02em;
+}
+
+p,
+span,
+label,
+div {
+    color: var(--text-primary);
+}
+
+/* ========================================
+   SIDEBAR - The Control Panel
+   ======================================== */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, var(--obsidian) 0%, var(--void) 100%) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+section[data-testid="stSidebar"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--electric) 0%, transparent 50%, var(--electric) 100%);
+    opacity: 0.3;
+}
+
+/* Sidebar headings */
+section[data-testid="stSidebar"] h3 {
+    font-size: 0.7rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--electric) !important;
+    font-family: var(--font-mono) !important;
+    font-weight: 500 !important;
+}
+
+/* Inputs - minimal with accent focus */
+div[data-baseweb="select"]>div,
+div[data-baseweb="base-input"]>div {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text-primary) !important;
+    transition: all var(--duration) var(--ease-out) !important;
+}
+
+div[data-baseweb="select"]>div:hover,
+div[data-baseweb="base-input"]>div:hover {
+    border-color: var(--electric-dim) !important;
+}
+
+div[data-baseweb="select"]>div:focus-within,
+div[data-baseweb="base-input"]>div:focus-within {
+    border-color: var(--electric) !important;
+    box-shadow: 0 0 0 3px var(--electric-dim) !important;
+}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="popover"] li {
+    color: var(--text-primary) !important;
+    font-family: var(--font-mono) !important;
+}
+
+div[data-baseweb="popover"] ul {
+    background: var(--slate) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+div[data-baseweb="popover"] li:hover {
+    background: var(--electric-dim) !important;
+}
+
+/* ========================================
+   METRIC CARDS - Data Stations
+   ======================================== */
+.metric-card {
+    background: linear-gradient(135deg, var(--slate) 0%, var(--charcoal) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--duration) var(--ease-out);
+}
+
+/* Gradient border on hover */
+.metric-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, transparent 0%, var(--electric) 50%, transparent 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity var(--duration) var(--ease-out);
+}
+
+.metric-card:hover::before {
+    opacity: 1;
+}
+
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 245, 212, 0.1);
+}
+
+.metric-card .metric-value {
+    font-family: var(--font-display) !important;
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--text-bright) !important;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--text-bright) 0%, var(--electric) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.metric-card .metric-label {
+    font-family: var(--font-mono) !important;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: var(--space-xs);
+}
+
+.metric-card:hover .metric-label {
+    color: var(--electric) !important;
+}
+
+/* ========================================
+   MODE CARDS - Mission Select
+   ======================================== */
+/* ========================================
+   MODE CARDS - Clickable Containers
+   ======================================== */
+.mode-card-container {
+    cursor: pointer;
+    transition: all var(--duration) var(--ease-out);
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Target columns containing mode cards and add gap via margin */
+.stColumn:has(.mode-card-container) {
+    width: calc(50% - 1rem) !important;
+}
+
+
+/* Ensure the parent horizontal block uses flexbox properly */
+[data-testid="stHorizontalBlock"]:has(.stColumn .mode-card-container) {
+    justify-content: center !important;
+    gap: 2rem !important;
+}
+
+.mode-card {
+    background: linear-gradient(180deg, var(--slate) 0%, var(--obsidian) 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: var(--space-lg);
+    width: 100%;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all var(--duration) var(--ease-out);
+}
+
+/* Animated gradient border */
+.mode-card::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: conic-gradient(from 0deg, var(--electric), var(--hot-pink), var(--electric));
+    border-radius: 22px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity var(--duration) var(--ease-out);
+}
+
+.mode-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: linear-gradient(180deg, var(--slate) 0%, var(--obsidian) 100%);
+    border-radius: 19px;
+    z-index: -1;
+}
+
+.mode-card-container:hover .mode-card::before,
+.stColumn:has(.mode-card-container):not(:has(.stColumn)):hover .mode-card::before {
+    opacity: 1;
+    animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.mode-card-container:hover .mode-card,
+.stColumn:has(.mode-card-container):not(:has(.stColumn)):hover .mode-card {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 30px 60px rgba(0, 245, 212, 0.15);
+}
+
+.mode-card .mode-card-icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-md);
+    filter: grayscale(0.5);
+    transition: all var(--duration) var(--ease-out);
+}
+
+.mode-card-container:hover .mode-card-icon,
+.stColumn:has(.mode-card-container):not(:has(.stColumn)):hover .mode-card-icon {
+    filter: grayscale(0);
+    transform: scale(1.1);
+}
+
+.mode-card .mode-card-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-bright) !important;
+    margin-bottom: var(--space-xs);
+    transition: color var(--duration) var(--ease-out);
+}
+
+.mode-card-container:hover .mode-card-title,
+.stColumn:has(.mode-card-container):not(:has(.stColumn)):hover .mode-card-title {
+    color: var(--electric) !important;
+}
+
+.mode-card .mode-card-desc {
+    font-family: var(--font-mono) !important;
+    font-size: 0.85rem;
+    color: var(--text-muted) !important;
+    line-height: 1.6;
+}
+
+/* Button wrapper and button */
+.mode-card-button-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-md);
+}
+
+.mode-card-button {
+    font-family: var(--font-mono) !important;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 24px;
+    transition: all var(--duration) var(--ease-out);
+}
+
+.mode-card-container:hover .mode-card-button,
+.stColumn:has(.mode-card-container):not(:has(.stColumn)):hover .mode-card-button {
+    color: var(--electric);
+    border-color: var(--electric);
+    background: rgba(0, 245, 212, 0.05);
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
+}
+
+/* STRATEGY: Overlay the hidden Streamlit button on top of the card */
+
+/* 1. Make parent column relative so we can position button absolutely */
+/* Target only the leaf columns to avoid affecting the parent layout wrapper */
+.stColumn:has(.mode-card-container):not(:has(.stColumn)) {
+    position: relative !important;
+    width: 400px !important;
+    flex: 0 0 400px !important;
+    margin: 0 1rem !important;
+}
+
+/* Remove the previous broad selectors that might affect the parent */
+
+
+/* 2. Position the button container to cover the entire card area */
+div[data-testid="stElementContainer"].st-key-vehicle-btn,
+div[data-testid="stElementContainer"].st-key-person-btn {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 10 !important;
+    opacity: 0 !important;
+    /* Invisible but clickable */
+    pointer-events: auto !important;
+    margin: 0 !important;
+}
+
+/* 3. Force the button inside to fill the container */
+div[data-testid="stElementContainer"].st-key-vehicle-btn button,
+div[data-testid="stElementContainer"].st-key-person-btn button {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 300px !important;
+    /* Ensure it covers the card height */
+    cursor: pointer !important;
+}
+
+
+/* Hide empty side columns in landing page */
+div[data-testid="stColumn"]:has(> div[data-testid="stVerticalBlock"]:empty) {
+    display: none !important;
+}
+
+
+
+/* ========================================
+   HERO - The Observatory
+   ======================================== */
+.hero-container {
+    text-align: center;
+    padding: var(--space-xl) var(--space-md);
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.hero-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-md);
+    color: var(--electric);
+    filter: drop-shadow(0 0 30px var(--electric-glow));
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+.hero-title {
+    font-family: var(--font-display) !important;
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--text-bright);
+    margin-bottom: var(--space-xs);
+    letter-spacing: -0.03em;
+}
+
+.hero-subtitle {
+    font-family: var(--font-mono) !important;
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: var(--space-lg);
+    font-weight: 400;
+}
+
+/* Features - Horizontal data strip */
+.features {
+    display: flex;
+    gap: var(--space-lg);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.feature i {
+    color: var(--electric);
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   BUTTONS - Minimal with presence
+   ======================================== */
+div.stButton>button {
+    all: unset !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    padding: var(--space-sm) var(--space-md) !important;
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text-primary) !important;
+    transition: all var(--duration) var(--ease-out) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+div.stButton>button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--electric);
+    transform: translateY(100%);
+    transition: transform var(--duration) var(--ease-out);
+    z-index: -1;
+}
+
+div.stButton>button:hover {
+    border-color: var(--electric) !important;
+    color: var(--void) !important;
+}
+
+div.stButton>button:hover::before {
+    transform: translateY(0);
+}
+
+div.stButton>button:focus-visible {
+    outline: 2px solid var(--electric) !important;
+    outline-offset: 4px !important;
+}
+
+div.stButton>button p {
+    margin: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+}
+
+/* ========================================
+   RADIO BUTTONS
+   ======================================== */
+div[data-baseweb="radio"] div[role="radio"] {
+    border-color: var(--text-dim) !important;
+    transition: all var(--duration) var(--ease-out) !important;
+}
+
+div[data-baseweb="radio"] div[aria-checked="true"] {
+    border-color: var(--electric) !important;
+}
+
+div[data-baseweb="radio"] div[aria-checked="true"]::after {
+    background-color: var(--electric) !important;
+}
+
+div[data-baseweb="radio"]:hover div[role="radio"] {
+    border-color: var(--electric) !important;
+}
+
+div[data-baseweb="radio"] label {
+    color: var(--text-primary) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.9rem !important;
+}
+
+/* ========================================
+   SLIDERS - Precision controls
+   ======================================== */
+.stSlider [data-baseweb="slider"]>div {
+    background-color: var(--charcoal) !important;
+    height: 4px !important;
+    border-radius: 2px !important;
+}
+
+.stSlider [data-baseweb="slider"]>div>div {
+    background: linear-gradient(90deg, var(--electric) 0%, var(--hot-pink) 100%) !important;
+}
+
+.stSlider [role="slider"] {
+    background-color: var(--text-bright) !important;
+    border: none !important;
+    width: 16px !important;
+    height: 16px !important;
+    box-shadow: 0 0 0 4px var(--electric-dim) !important;
+    transition: box-shadow var(--duration) var(--ease-out) !important;
+}
+
+.stSlider [role="slider"]:hover {
+    box-shadow: 0 0 0 8px var(--electric-dim) !important;
+}
+
+/* Slider labels */
+.stSlider div[data-testid="stThumbValue"],
+.stSlider [data-baseweb="slider"] div {
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.8rem !important;
+}
+
+.stSlider [data-testid="stTickBarMin"],
+.stSlider [data-testid="stTickBarMax"] {
+    color: var(--text-dim) !important;
+    font-size: 0.75rem !important;
+}
+
+/* ========================================
+   TOOLTIPS & METRICS
+   ======================================== */
+div[data-testid="stTooltipContent"] {
+    background: var(--slate) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.85rem !important;
+}
+
+div[data-testid="stMetric"] {
+    background: linear-gradient(135deg, var(--slate) 0%, var(--charcoal) 100%);
+    border: 1px solid var(--border);
+    padding: var(--space-sm);
+    border-radius: 12px;
+    margin-bottom: var(--space-xs);
+}
+
+div[data-testid="stMetric"] label {
+    color: var(--text-dim) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    font-family: var(--font-display) !important;
+    color: var(--text-bright) !important;
+    font-weight: 700 !important;
+    font-size: 1.5rem !important;
+}
+
+/* ========================================
+   HEADER & CHROME
+   ======================================== */
+header[data-testid="stHeader"] {
+    background: rgba(10, 10, 15, 0.9) !important;
+    backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+div[data-testid="stDecoration"] {
+    background: linear-gradient(90deg, var(--electric) 0%, var(--hot-pink) 100%) !important;
+    height: 2px !important;
+}
+
+/* ========================================
+   SCROLLBAR - Branded
+   ======================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--void);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--charcoal);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--electric-dim);
+}
+
+/* ========================================
+   FILE UPLOADER
+   ======================================== */
+div[data-testid="stFileUploader"] {
+    border: 2px dashed var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--surface) !important;
+    transition: all var(--duration) var(--ease-out) !important;
+}
+
+div[data-testid="stFileUploader"]:hover {
+    border-color: var(--electric) !important;
+    background: var(--electric-dim) !important;
+}
