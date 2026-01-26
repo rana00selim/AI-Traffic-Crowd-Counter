@@ -9,28 +9,53 @@ import numpy as np
 import plotly.graph_objects as go
 import tempfile
 import os
+import pandas as pd
+import atexit
+from typing import Tuple, Dict, Optional, List
 from vehicle_counter import YOLOProcessor
+from config import (
+    DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, TEAL_BGR,
+    DEFAULT_CONFIDENCE, AVAILABLE_MODELS, DEFAULT_MODEL,
+    PREVIEW_TEXT, WEBCAM_PREVIEW_TEXT, ERROR_NO_VIDEO, ERROR_NO_SAMPLES,
+    CHART_UPDATE_INTERVAL
+)
+
+# Track temp files for cleanup
+_temp_files: List[str] = []
+
+def cleanup_temp_files():
+    """Clean up temporary files on exit"""
+    for f in _temp_files:
+        try:
+            if os.path.exists(f):
+                os.unlink(f)
+        except Exception:
+            pass
+
+atexit.register(cleanup_temp_files)
 
 # Page Config
 st.set_page_config(
     page_title="YOLO Vision AI",
     page_icon="🔮",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Premium CSS - Organized in external file, loaded properly
-def inject_global_css():
-    """Load CSS from external file for better maintainability"""
-    import os
+@st.cache_data
+def load_css_content() -> str:
+    """Cache CSS content to avoid re-reading from disk on every rerun"""
     css_path = os.path.join(os.path.dirname(__file__), "styles.css")
-    
-    # Load external CSS
     try:
         with open(css_path, 'r', encoding='utf-8') as f:
-            css_content = f.read()
+            return f.read()
     except FileNotFoundError:
-        css_content = ""  # Fallback if file missing
+        return ""  # Fallback if file missing
+
+def inject_global_css() -> None:
+    """Load CSS from external file for better maintainability"""
+    css_content = load_css_content()  # Now cached!
     
     # Inject Font Awesome and Google Fonts
     st.markdown("""
@@ -39,7 +64,7 @@ def inject_global_css():
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
     
-    # Inject CSS separately to avoid escaping issues
+    # Inject CSS
     st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
 
 
@@ -126,41 +151,76 @@ def render_landing_page():
     """, unsafe_allow_html=True)
 
 # ==================== DASHBOARD ====================
-def create_donut_chart(counts: dict) -> go.Figure:
-    """Create class distribution donut chart"""
-    if not counts or len(counts) <= 1:
+def create_donut_chart(counts) -> go.Figure:
+    """Create class distribution donut chart from DetectionCount"""
+    if not counts:
+        return None
+    
+    # Handle DetectionCount dataclass
+    counts_dict = counts.counts_by_class if hasattr(counts, 'counts_by_class') else counts
+    total = counts.total if hasattr(counts, 'total') else counts.get('total', 0)
+    
+    if not counts_dict or len(counts_dict) < 1:
         return None
     
     labels = []
     values = []
-    for key, val in counts.items():
-        if key != 'total' and val > 0:
+    for key, val in counts_dict.items():
+        if val > 0:
             labels.append(key.title())
             values.append(val)
     
     if not labels:
         return None
-        
+    
+    # Premium color palette matching neo-noir theme
+    premium_colors = [
+        '#00D4FF',  # Electric cyan
+        '#7C3AED',  # Purple
+        '#F472B6',  # Pink
+        '#10B981',  # Emerald
+        '#F59E0B',  # Amber
+        '#EF4444',  # Red
+        '#3B82F6',  # Blue
+        '#8B5CF6',  # Violet
+    ]
+    
     fig = go.Figure(data=[go.Pie(
         labels=labels,
         values=values,
-        hole=0.6,
-        marker=dict(line=dict(color='#fff', width=2)),
-        textinfo='percent+label'
+        hole=0.65,
+        marker=dict(
+            colors=premium_colors[:len(labels)],
+            line=dict(color='rgba(26, 26, 46, 0.8)', width=3)
+        ),
+        textinfo='label+percent',
+        textposition='outside',
+        textfont=dict(size=12, color='#E2E8F0', family='Inter'),
+        hoverinfo='label+value+percent',
+        hoverlabel=dict(
+            bgcolor='rgba(26, 26, 46, 0.95)',
+            font_size=14,
+            font_color='#00D4FF'
+        ),
+        pull=[0.02] * len(labels),  # Slight pull for 3D effect
     )])
     
+    # Center annotation with total count
     fig.update_layout(
         showlegend=False,
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=250,
-        annotations=[dict(
-            text=f'<b>{counts["total"]}</b>',
-            x=0.5, y=0.5,
-            font_size=24,
-            showarrow=False
-        )]
+        margin=dict(l=20, r=20, t=30, b=30),
+        height=280,
+        annotations=[
+            dict(
+                text=f'<b style="font-size:28px; color:#00D4FF">{total}</b><br><span style="font-size:11px; color:#94A3B8">DETECTED</span>',
+                x=0.5, y=0.5,
+                font=dict(size=14, color='#E2E8F0', family='Inter'),
+                showarrow=False,
+                align='center'
+            )
+        ]
     )
     return fig
 
@@ -173,7 +233,7 @@ def get_preview_frame(video_source_type: str, video_path: str = None, camera_id:
     - Webcam: Live frame from camera with config overlay
     Returns: (frame, is_live) - frame is BGR numpy array, is_live indicates if it's a live feed
     """
-    default_height, default_width = 480, 854  # 16:9 aspect ratio
+    default_height, default_width = DEFAULT_FRAME_HEIGHT, DEFAULT_FRAME_WIDTH
     frame = None
     is_live = False
     
@@ -230,9 +290,9 @@ def get_preview_frame(video_source_type: str, video_path: str = None, camera_id:
                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (212, 245, 0), 2)
     
     # Add preview text
-    mode_text = "PREVIEW - Press Start"
+    mode_text = PREVIEW_TEXT
     if is_live:
-        mode_text = "WEBCAM PREVIEW - Press Start"
+        mode_text = WEBCAM_PREVIEW_TEXT
     cv2.putText(frame, mode_text, (20, 40), 
                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100, 100, 100), 2)
     
@@ -321,16 +381,17 @@ def render_dashboard():
                 tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
                 tfile.write(uploaded.read())
                 video_path = tfile.name
+                _temp_files.append(video_path)  # Track for cleanup
         else:
             use_camera = True
-            camera_id = st.number_input("Camera ID", 0, 5, 0)
+            camera_id = st.number_input("Camera ID", min_value=0, max_value=5, value=0)
         
         st.markdown("---")
         
         # Model Config
-        model_name = st.selectbox("Model", ["yolo26l.pt", "yolo26n.pt", "yolo26m.pt"], help="Nano=fast, Large=accurate")
-        conf_threshold = st.slider("Confidence", 0.1, 1.0, 0.3, help="Detection threshold")
-        skip_frames = st.slider("Skip Frames", 1, 5, 1, help="Process every Nth frame")
+        model_name = st.selectbox("Model", AVAILABLE_MODELS, help="YOLOv8n = fastest but less accurate. YOLOv8l/YOLO26l = slower but most accurate. Choose based on your hardware.")
+        conf_threshold = st.slider("Confidence", 0.1, 1.0, DEFAULT_CONFIDENCE, help="Minimum confidence to detect an object. Low (0.1) = detect more objects but more false positives. High (1.0) = only very confident detections.")
+        skip_frames = st.slider("Skip Frames", min_value=1, max_value=5, value=1, help="Process every Nth frame. 1 = process all frames (accurate but slow). 5 = process every 5th frame (fast but may miss quick movements).")
         
         st.markdown("---")
         
@@ -349,17 +410,17 @@ def render_dashboard():
         if analysis_mode == "Line Crossing":
             st.markdown("###### Line Configuration")
             st.info("Objects crossing this line will be counted")
-            line_y = st.slider("Line Y Position", 0.0, 1.0, 0.5, 0.05, help="Vertical position (0=top, 1=bottom)")
-            line_margin = st.slider("Margin", 0.0, 0.5, 0.0, 0.05, help="Horizontal margin from edges")
+            line_y = st.slider("Line Y Position", 0.0, 1.0, 0.5, 0.05, help="Where to place the counting line vertically. 0.0 = top of video, 0.5 = middle, 1.0 = bottom. Place where vehicles cross the screen.")
+            line_margin = st.slider("Margin", 0.0, 0.5, 0.0, 0.05, help="Shorten the line from both edges. 0.0 = line spans full width, 0.5 = line is only in the center. Useful to ignore objects at screen edges.")
             line_params = {"y": line_y, "margin": line_margin}
         else:  # Area Density
             st.markdown("###### Zone Configuration")
             st.info("Objects inside this zone will be counted")
             enable_zone = True
-            z_x = st.slider("Zone X", 0.0, 1.0, 0.2, 0.05)
-            z_y = st.slider("Zone Y", 0.0, 1.0, 0.2, 0.05)
-            z_w = st.slider("Zone Width", 0.1, 1.0, 0.6, 0.05)
-            z_h = st.slider("Zone Height", 0.1, 1.0, 0.6, 0.05)
+            z_x = st.slider("Zone X", 0.0, 1.0, 0.2, 0.05, help="Left edge of the zone. 0.0 = left side of video, 1.0 = right side.")
+            z_y = st.slider("Zone Y", 0.0, 1.0, 0.2, 0.05, help="Top edge of the zone. 0.0 = top of video, 1.0 = bottom.")
+            z_w = st.slider("Zone Width", 0.1, 1.0, 0.6, 0.05, help="How wide the zone is. 0.1 = small (10% of video width), 1.0 = full width.")
+            z_h = st.slider("Zone Height", 0.1, 1.0, 0.6, 0.05, help="How tall the zone is. 0.1 = small (10% of video height), 1.0 = full height.")
             zone_params = (z_x, z_y, z_w, z_h)
     
     # Main Area
@@ -388,7 +449,7 @@ def render_dashboard():
         else:
             if st.button("⏹ Stop Detection"):
                 if 'processor' in st.session_state:
-                    st.session_state.final_counts = dict(st.session_state.processor.cumulative_counts)
+                    st.session_state.final_counts = st.session_state.processor.current_counts
                 st.session_state.processing = False
                 st.rerun()
     
@@ -413,8 +474,17 @@ def render_dashboard():
         else:
             processor = st.session_state.processor
         
-        # Open video
-        if st.session_state.get('cap') is None:
+        # Open video - detect if video source changed
+        current_source = video_path if video_path else f"camera_{camera_id}"
+        previous_source = st.session_state.get('current_video_source')
+        
+        # If source changed or no cap exists, open new video
+        if st.session_state.get('cap') is None or previous_source != current_source:
+            # Release old capture if exists
+            if st.session_state.get('cap') is not None:
+                st.session_state.cap.release()
+                st.session_state.cap = None
+            
             if use_camera:
                 cap = cv2.VideoCapture(camera_id)
             elif video_path and os.path.exists(video_path):
@@ -424,25 +494,41 @@ def render_dashboard():
                 st.session_state.processing = False
                 cap = None
             st.session_state.cap = cap
+            st.session_state.current_video_source = current_source
         else:
             cap = st.session_state.cap
         
+        
         if cap and cap.isOpened():
+            # Set up line ONCE before processing (if in Line Crossing mode)
+            if line_params:
+                h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                line_y_px = int(line_params["y"] * h)
+                margin_px = int(line_params["margin"] * w)
+                # Set line for crossing detection (only once!)
+                processor.set_line(
+                    start=(margin_px, line_y_px),
+                    end=(w - margin_px, line_y_px)
+                )
+            
             frame_idx = 0
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) if not use_camera else 0
+            progress_bar = None
+            if total_frames > 0:
+                progress_bar = st.progress(0, text="Processing video...")
             
             while cap.isOpened() and st.session_state.get('processing', False):
                 ret, frame = cap.read()
                 
                 if not ret:
-                    if not use_camera:
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        continue
-                    else:
-                        break
+                    # Video ended - stop processing
+                    break
                 
                 frame_idx += 1
                 if frame_idx % skip_frames != 0:
                     continue
+                
                 
                 # Update zone if enabled (Area Density mode)
                 if enable_zone and zone_params:
@@ -461,9 +547,16 @@ def render_dashboard():
                     
                     # Update processor zone
                     processor.set_zone(polygon, (w, h))
-                elif hasattr(processor, 'zone') and not enable_zone:
-                    # Clear zone if disabled
-                    processor.zone = None
+                elif line_params:
+                    # Line Crossing mode - clear zone but keep line
+                    if hasattr(processor, 'region_zone'):
+                        processor.region_zone = None
+                else:
+                    # Clear both line and zone if neither enabled
+                    if hasattr(processor, 'line_zone'):
+                        processor.line_zone = None
+                    if hasattr(processor, 'region_zone'): # Changed from 'zone' to 'region_zone' for consistency
+                        processor.region_zone = None
                 
                 annotated, counts = processor.process_frame(frame)
                 
@@ -481,30 +574,48 @@ def render_dashboard():
                 
                 frame_placeholder.image(annotated, channels="BGR", width="stretch")
                 
+                # Store last frame for snapshot feature
+                st.session_state.last_frame = annotated.copy()
+                
                 with stats_container.container():
                     st.markdown(f"""
                     <div class="metric-card">
-                        <div class="metric-value">{counts['total']}</div>
+                        <div class="metric-value">{counts.total}</div>
                         <div class="metric-label">Total Unique Objects</div>
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    if 'zone_occupancy' in counts:
+                    # Show direction counters for Line Crossing mode
+                    if line_params and hasattr(counts, 'in_count'):
+                        col_in, col_out = st.columns(2)
+                        with col_in:
+                            st.metric("↓ In", counts.in_count)
+                        with col_out:
+                            st.metric("↑ Out", counts.out_count)
+                    
+                    if hasattr(counts, 'zone_occupancy') and counts.zone_occupancy > 0:
                          st.markdown(f"""
                         <div class="metric-card" style="border-color: var(--secondary);">
-                            <div class="metric-value" style="color: var(--secondary);">{counts['zone_occupancy']}</div>
+                            <div class="metric-value" style="color: var(--secondary);">{counts.zone_occupancy}</div>
                             <div class="metric-label">Zone Occupancy</div>
                         </div>
                         """, unsafe_allow_html=True)
                     
-                    for cls_name, count in counts.items():
-                        if cls_name != 'total' and count > 0:
+                    for cls_name, count in counts.counts_by_class.items():
+                        if count > 0:
                             st.metric(cls_name.title(), count)
                 
                 with chart_container.container():
-                    chart = create_donut_chart(counts)
-                    if chart:
-                        st.plotly_chart(chart, use_container_width=True, key=f"chart_{frame_idx % 1000}")
+                    # Only update chart every N frames to reduce flickering
+                    if frame_idx % CHART_UPDATE_INTERVAL == 0:
+                        chart = create_donut_chart(counts)
+                        if chart:
+                            st.plotly_chart(chart, width="stretch", key=f"chart_{frame_idx % 1000}")
+                
+                # Update progress bar
+                if progress_bar and total_frames > 0:
+                    progress = min(1.0, frame_idx / total_frames)
+                    progress_bar.progress(progress, text=f"Processing: {int(progress * 100)}%")
             
             cap.release()
             st.session_state.cap = None
@@ -512,22 +623,57 @@ def render_dashboard():
     
     # Display final counts
     elif st.session_state.get('final_counts'):
+        final = st.session_state.final_counts
         with stats_container.container():
             st.markdown(f"""
             <div class="metric-card">
-                <div class="metric-value">{st.session_state.final_counts['total']}</div>
+                <div class="metric-value">{final.total}</div>
                 <div class="metric-label">Final Total</div>
             </div>
             """, unsafe_allow_html=True)
             
-            for cls_name, count in st.session_state.final_counts.items():
-                if cls_name != 'total' and count > 0:
+            for cls_name, count in final.counts_by_class.items():
+                if count > 0:
                     st.metric(cls_name.title(), count)
+            
+            # ===== CSV EXPORT =====
+            st.markdown("---")
+            st.markdown("##### 📥 Export Data")
+            
+            # Prepare CSV data
+            csv_data = []
+            for cls_name, count in final.counts_by_class.items():
+                csv_data.append({"Class": cls_name.title(), "Count": count})
+            
+            df = pd.DataFrame(csv_data)
+            csv_string = df.to_csv(index=False)
+            
+            st.download_button(
+                label="📊 Download CSV",
+                data=csv_string,
+                file_name="detection_counts.csv",
+                mime="text/csv",
+                help="Download count data as CSV file"
+            )
+        
+        # ===== SNAPSHOT BUTTON =====
+        if st.session_state.get('last_frame') is not None:
+            with col_video:
+                st.markdown("##### 📸 Snapshot")
+                # Encode frame to PNG bytes
+                _, buffer = cv2.imencode('.png', st.session_state.last_frame)
+                st.download_button(
+                    label="📷 Save Snapshot",
+                    data=buffer.tobytes(),
+                    file_name="detection_snapshot.png",
+                    mime="image/png",
+                    help="Save the last processed frame as an image"
+                )
         
         with chart_container.container():
             chart = create_donut_chart(st.session_state.final_counts)
             if chart:
-                st.plotly_chart(chart, use_container_width=True, key="final_chart")
+                st.plotly_chart(chart, width="stretch", key="final_chart")
 
 # ==================== MAIN APP ====================
 # Initialize session state
@@ -537,6 +683,8 @@ if 'processing' not in st.session_state:
     st.session_state.processing = False
 if 'final_counts' not in st.session_state:
     st.session_state.final_counts = None
+if 'last_frame' not in st.session_state:
+    st.session_state.last_frame = None
 
 # Inject global CSS
 inject_global_css()
