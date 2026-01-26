@@ -174,7 +174,7 @@ def render_dashboard():
         st.rerun()
     
     # Title
-    st.markdown('<h1 style="text-align: center;"><i class="fa-solid fa-eye" style="color:var(--accent); margin-right:15px;"></i>YOLO Vision <span style="color:var(--accent);">AI</span></h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="text-align: center;"><i class="fa-solid fa-eye" style="color:var(--electric); margin-right:15px;"></i>YOLO Vision <span style="color:var(--accent);">AI</span></h1>', unsafe_allow_html=True)
     
     # Sidebar
     with st.sidebar:

@@ -201,7 +201,6 @@ div[data-baseweb="popover"] li:hover {
 }
 
 .metric-card .metric-value {
-    font-family: var(--font-display) !important;
     font-size: 3rem;
     font-weight: 800;
     color: var(--text-bright) !important;
@@ -550,68 +549,67 @@ div.stButton>button p {
 /* ========================================
    RADIO BUTTONS
    ======================================== */
-div[data-baseweb="radio"] div[role="radio"] {
-    border-color: var(--text-dim) !important;
-    transition: all var(--duration) var(--ease-out) !important;
-}
-
-div[data-baseweb="radio"] div[aria-checked="true"] {
-    border-color: var(--electric) !important;
-}
-
-div[data-baseweb="radio"] div[aria-checked="true"]::after {
-    background-color: var(--electric) !important;
-}
-
-div[data-baseweb="radio"]:hover div[role="radio"] {
-    border-color: var(--electric) !important;
-}
-
 div[data-baseweb="radio"] label {
     color: var(--text-primary) !important;
     font-family: var(--font-mono) !important;
     font-size: 0.9rem !important;
 }
 
+/* Unchecked state */
+div[data-baseweb="radio"] label>div:first-child {
+    border-color: var(--text-dim) !important;
+    transition: all var(--duration) var(--ease-out) !important;
+}
+
+/* Checked state - Targetting the inner circle/background */
+div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked)>div:first-child {
+    background-color: #00f5d4 !important;
+    /* User requested color */
+    border-color: #00f5d4 !important;
+}
+
+/* Hover state */
+div[data-baseweb="radio"]:hover label>div:first-child {
+    border-color: var(--electric) !important;
+}
+
 /* ========================================
    SLIDERS - Precision controls
    ======================================== */
-.stSlider [data-baseweb="slider"]>div {
-    background-color: var(--charcoal) !important;
-    height: 4px !important;
-    border-radius: 2px !important;
+/* ========================================
+   SLIDERS - Precision controls
+   ======================================== */
+.stSlider [data-baseweb="slider"] {
+    margin-top: 15px;
+    padding-bottom: 5px;
 }
 
-.stSlider [data-baseweb="slider"]>div>div {
-    background: linear-gradient(90deg, var(--electric) 0%, var(--hot-pink) 100%) !important;
+/* 4. Fix Tick Bar Visibility (Min/Max values) */
+/* User reported these are hidden unless hovered due to opacity variable */
+div[data-testid="stSliderTickBar"] {
+    opacity: 1 !important;
+    --slider-focused: 1 !important;
+    /* Force the variable if used */
 }
 
-.stSlider [role="slider"] {
-    background-color: var(--text-bright) !important;
-    border: none !important;
-    width: 16px !important;
-    height: 16px !important;
-    box-shadow: 0 0 0 4px var(--electric-dim) !important;
-    transition: box-shadow var(--duration) var(--ease-out) !important;
+/* 5. Slider Value Popup (The floating number above thumb) */
+div[data-testid="stSliderThumbValue"] {
+
+    color: var(--electric) !important;
 }
 
-.stSlider [role="slider"]:hover {
-    box-shadow: 0 0 0 8px var(--electric-dim) !important;
-}
 
-/* Slider labels */
+
+/* Slider values (min/max/current in tick bar) */
 .stSlider div[data-testid="stThumbValue"],
-.stSlider [data-baseweb="slider"] div {
-    background: transparent !important;
-    color: var(--text-muted) !important;
+/* Legacy selector just in case */
+.stSlider div[data-testid="stTickBarMin"],
+.stSlider div[data-testid="stTickBarMax"] {
     font-family: var(--font-mono) !important;
+    color: var(--text-muted) !important;
     font-size: 0.8rem !important;
-}
-
-.stSlider [data-testid="stTickBarMin"],
-.stSlider [data-testid="stTickBarMax"] {
-    color: var(--text-dim) !important;
-    font-size: 0.75rem !important;
+    background-color: transparent !important;
+    /* Remove any weird box background */
 }
 
 /* ========================================
@@ -658,6 +656,20 @@ header[data-testid="stHeader"] {
     border-bottom: 1px solid var(--border) !important;
 }
 
+/* Hide the Deploy button */
+.stDeployButton,
+.stAppDeployButton,
+div[data-testid="stAppDeployButton"] {
+    display: none !important;
+}
+
+/* Hide header anchor links (chain icons next to headers) */
+div[data-testid="stHeaderActionElements"],
+.st-emotion-cache-1fz6867,
+a.st-emotion-cache-1fz6867 {
+    display: none !important;
+}
+
 div[data-testid="stDecoration"] {
     background: linear-gradient(90deg, var(--electric) 0%, var(--hot-pink) 100%) !important;
     height: 2px !important;
@@ -687,6 +699,10 @@ div[data-testid="stDecoration"] {
 /* ========================================
    FILE UPLOADER
    ======================================== */
+/* ========================================
+   FILE UPLOADER
+   ======================================== */
+/* Main container */
 div[data-testid="stFileUploader"] {
     border: 2px dashed var(--border) !important;
     border-radius: 12px !important;
@@ -698,3 +714,19 @@ div[data-testid="stFileUploader"]:hover {
     border-color: var(--electric) !important;
     background: var(--electric-dim) !important;
 }
+
+/* 1. Label Padding ("Upload MP4") */
+div[data-testid="stFileUploader"] label {
+    padding-left: 14px !important;
+    padding-top: 10px !important;
+    /* Add top padding to not hug border */
+}
+
+/* 2. Inner Text Font Size ("Drag and drop...", "Limit...") */
+section[data-testid="stFileUploaderDropzone"] div,
+section[data-testid="stFileUploaderDropzone"] span,
+section[data-testid="stFileUploaderDropzone"] small {
+    font-size: 0.8rem !important;
+    color: var(--text-muted) !important;
+}
+
