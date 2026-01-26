@@ -164,6 +164,81 @@ def create_donut_chart(counts: dict) -> go.Figure:
     )
     return fig
 
+def get_preview_frame(video_source_type: str, video_path: str = None, camera_id: int = 0,
+                      line_params: dict = None, zone_params: tuple = None):
+    """
+    Get a preview frame based on the selected video source.
+    - Sample Video: First frame in grayscale with config overlay
+    - Upload Video: Black screen
+    - Webcam: Live frame from camera with config overlay
+    Returns: (frame, is_live) - frame is BGR numpy array, is_live indicates if it's a live feed
+    """
+    default_height, default_width = 480, 854  # 16:9 aspect ratio
+    frame = None
+    is_live = False
+    
+    if video_source_type == "Sample Video" and video_path and os.path.exists(video_path):
+        cap = cv2.VideoCapture(video_path)
+        ret, raw_frame = cap.read()
+        cap.release()
+        if ret:
+            # Convert to grayscale and back to BGR for display
+            gray = cv2.cvtColor(raw_frame, cv2.COLOR_BGR2GRAY)
+            frame = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    
+    elif video_source_type == "Upload Video":
+        # Black screen with text
+        frame = np.zeros((default_height, default_width, 3), dtype=np.uint8)
+        cv2.putText(frame, "Upload a video to begin", (default_width//2 - 180, default_height//2), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (80, 80, 80), 2)
+        return frame, False
+    
+    elif video_source_type == "Webcam":
+        cap = cv2.VideoCapture(camera_id)
+        ret, frame = cap.read()
+        cap.release()
+        if ret:
+            is_live = True
+    
+    # Fallback: black screen
+    if frame is None:
+        frame = np.zeros((default_height, default_width, 3), dtype=np.uint8)
+        return frame, False
+    
+    h, w = frame.shape[:2]
+    
+    # Draw line configuration preview
+    if line_params:
+        line_y_px = int(line_params["y"] * h)
+        margin_px = int(line_params["margin"] * w)
+        # Draw the counting line (teal color)
+        cv2.line(frame, (margin_px, line_y_px), (w - margin_px, line_y_px), 
+                (212, 245, 0), 2)  # Teal in BGR
+        # Draw circles at ends
+        cv2.circle(frame, (margin_px, line_y_px), 6, (212, 245, 0), -1)
+        cv2.circle(frame, (w - margin_px, line_y_px), 6, (212, 245, 0), -1)
+    
+    # Draw zone configuration preview
+    if zone_params:
+        zx, zy, zw, zh = zone_params
+        x1, y1 = int(zx * w), int(zy * h)
+        x2, y2 = int((zx + zw) * w), int((zy + zh) * h)
+        # Draw zone rectangle with teal color
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (212, 245, 0), 2)
+        # Add zone label
+        cv2.putText(frame, "ZONE", (x1 + 10, y1 + 30), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (212, 245, 0), 2)
+    
+    # Add preview text
+    mode_text = "PREVIEW - Press Start"
+    if is_live:
+        mode_text = "WEBCAM PREVIEW - Press Start"
+    cv2.putText(frame, mode_text, (20, 40), 
+               cv2.FONT_HERSHEY_SIMPLEX, 0.8, (100, 100, 100), 2)
+    
+    return frame, is_live
+
+
 def render_dashboard():
     """Render the detection dashboard"""
     
@@ -234,7 +309,8 @@ def render_dashboard():
             if sample_videos:
                 video_list = list(sample_videos.keys())
                 default_idx = video_list.index(auto_selected) if auto_selected in video_list else 0
-                selected = st.selectbox("Choose Video", video_list, index=default_idx)
+                # Use a key tied to config_name to force reset when detection mode changes
+                selected = st.selectbox("Choose Video", video_list, index=default_idx, key=f"video_select_{config_name}")
                 video_path = sample_videos[selected]
             else:
                 st.error("No sample videos found")
@@ -258,12 +334,28 @@ def render_dashboard():
         
         st.markdown("---")
         
-        # Zone Analysis
-        enable_zone = st.checkbox("Enable Zone Occupancy", help="Track objects in specific area")
-        zone_params = None
+        # Analysis Mode
+        analysis_mode = st.radio(
+            "Analysis Mode",
+            ["Line Crossing", "Area Density"],
+            help="Line: count objects crossing a line. Area: count objects in a zone."
+        )
         
-        if enable_zone:
-            st.markdown("###### Zone Configuration (Normalized 0.0-1.0)")
+        # Mode-specific settings
+        line_params = None
+        zone_params = None
+        enable_zone = False
+        
+        if analysis_mode == "Line Crossing":
+            st.markdown("###### Line Configuration")
+            st.info("Objects crossing this line will be counted")
+            line_y = st.slider("Line Y Position", 0.0, 1.0, 0.5, 0.05, help="Vertical position (0=top, 1=bottom)")
+            line_margin = st.slider("Margin", 0.0, 0.5, 0.0, 0.05, help="Horizontal margin from edges")
+            line_params = {"y": line_y, "margin": line_margin}
+        else:  # Area Density
+            st.markdown("###### Zone Configuration")
+            st.info("Objects inside this zone will be counted")
+            enable_zone = True
             z_x = st.slider("Zone X", 0.0, 1.0, 0.2, 0.05)
             z_y = st.slider("Zone Y", 0.0, 1.0, 0.2, 0.05)
             z_w = st.slider("Zone Width", 0.1, 1.0, 0.6, 0.05)
@@ -275,7 +367,16 @@ def render_dashboard():
     
     with col_video:
         st.markdown('<h3><i class="fa-solid fa-video" style="margin-right:10px; color:var(--accent);"></i>Live Feed</h3>', unsafe_allow_html=True)
+        
         frame_placeholder = st.empty()
+        
+        # Show preview frame when not processing
+        if not st.session_state.get('processing', False):
+            preview_frame, is_live = get_preview_frame(
+                video_source_type, video_path, camera_id,
+                line_params=line_params, zone_params=zone_params
+            )
+            frame_placeholder.image(preview_frame, channels="BGR", width="stretch")
         
         # Dynamic buttons
         if not st.session_state.get('processing', False):
@@ -343,7 +444,7 @@ def render_dashboard():
                 if frame_idx % skip_frames != 0:
                     continue
                 
-                # Update zone if enabled
+                # Update zone if enabled (Area Density mode)
                 if enable_zone and zone_params:
                     # Calculate absolute coordinates
                     h, w = frame.shape[:2]
@@ -365,7 +466,20 @@ def render_dashboard():
                     processor.zone = None
                 
                 annotated, counts = processor.process_frame(frame)
-                frame_placeholder.image(annotated, channels="BGR", use_container_width=True)
+                
+                # Draw counting line for Line Crossing mode
+                if line_params:
+                    h, w = annotated.shape[:2]
+                    line_y_px = int(line_params["y"] * h)
+                    margin_px = int(line_params["margin"] * w)
+                    # Draw the counting line (teal color)
+                    cv2.line(annotated, (margin_px, line_y_px), (w - margin_px, line_y_px), 
+                            (212, 245, 0), 2)  # Teal in BGR
+                    # Draw small markers at ends
+                    cv2.circle(annotated, (margin_px, line_y_px), 6, (212, 245, 0), -1)
+                    cv2.circle(annotated, (w - margin_px, line_y_px), 6, (212, 245, 0), -1)
+                
+                frame_placeholder.image(annotated, channels="BGR", width="stretch")
                 
                 with stats_container.container():
                     st.markdown(f"""

@@ -730,3 +730,22 @@ section[data-testid="stFileUploaderDropzone"] small {
     color: var(--text-muted) !important;
 }
 
+/* ========================================
+   VIDEO CONTAINER - Stable Layout
+   ======================================== */
+/* Prevent layout shifts by giving the video image a consistent container */
+div[data-testid="stImage"] {
+    min-height: 400px !important;
+    background: var(--obsidian) !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+}
+
+div[data-testid="stImage"] img {
+    border-radius: 10px !important;
+    object-fit: contain !important;
+}

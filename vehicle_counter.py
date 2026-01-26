@@ -59,7 +59,8 @@ class YOLOProcessor:
     def set_zone(self, polygon: np.ndarray, frame_resolution_wh: Tuple[int, int]):
         """Set the active zone for occupancy tracking"""
         self.zone_polygon = polygon
-        self.zone = sv.PolygonZone(polygon=polygon, frame_resolution_wh=frame_resolution_wh)
+        # Note: Newer versions of supervision don't use frame_resolution_wh
+        self.zone = sv.PolygonZone(polygon=polygon)
         self.zone_annotator = sv.PolygonZoneAnnotator(
             zone=self.zone, 
             color=sv.Color.WHITE, 
