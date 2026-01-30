@@ -19,7 +19,8 @@ Powered by YOLOv8 • ByteTrack • Streamlit • OpenCV
 <br/>
 
 <!-- Add your screenshots here -->
-<!-- ![Dashboard Screenshot](assets/screenshots/dashboard.png) -->
+
+![Dashboard Screenshot](public/homepage.png)
 
 [Features](#-features) •
 [Demo](#-demo) •
@@ -70,19 +71,19 @@ Powered by YOLOv8 • ByteTrack • Streamlit • OpenCV
 
 ### Landing Page
 
-<!-- ![Landing Page](assets/screenshots/landing.png) -->
+![Landing Page](public/homepage.png)
 
 _Premium landing page with feature cards and quick-start button_
 
 ### Line Crossing Mode
 
-<!-- ![Line Crossing](assets/screenshots/line_crossing.png) -->
+![Line Crossing](public/vehicle-line-crossing.png)
 
 _Vehicles crossing the yellow line are counted with green flash feedback_
 
 ### Area Density Mode
 
-<!-- ![Area Density](assets/screenshots/area_density.png) -->
+![Area Density](public/vehicle-area-density.png)
 
 _Real-time occupancy tracking within the blue zone_
 
