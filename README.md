@@ -67,25 +67,33 @@ Powered by YOLOv8 • ByteTrack • Streamlit • OpenCV
 
 ## 📸 Demo
 
-<!-- Replace these placeholders with actual screenshots -->
-
-### Landing Page
-
-![Landing Page](public/homepage.png)
-
-_Premium landing page with feature cards and quick-start button_
-
 ### Line Crossing Mode
 
-![Line Crossing](public/vehicle-line-crossing.png)
+#### Vehicle Counter
 
-_Vehicles crossing the yellow line are counted with green flash feedback_
+![Vehicle Line Crossing](public/vehicle-line-crossing.png)
+
+_Vehicles crossing the yellow line are counted from both directions_
+
+#### Person Counter
+
+![Person Line Crossing](public/person-line-crossing.png)
+
+_Pedestrians crossing the line are tracked individually_
 
 ### Area Density Mode
 
-![Area Density](public/vehicle-area-density.png)
+#### Vehicle Counter
 
-_Real-time occupancy tracking within the blue zone_
+![Vehicle Area Density](public/vehicle-area-density.png)
+
+_Real-time occupancy tracking of vehicles within the blue zone_
+
+#### Person Counter
+
+![Person Area Density](public/person-area-density.png)
+
+_Crowd density monitoring in public spaces_
 
 ---
 
